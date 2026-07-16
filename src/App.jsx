@@ -33,8 +33,24 @@ import {
 import { createClient } from '@supabase/supabase-js';
 
 // --- SUPABASE CONFIG ---
-const supabaseUrl = 'https://qbbvqepdszuoakoovuzm.supabase.co';
-const supabaseKey = 'sb_publishable_weoguRGCzdcQiL89ge2f2A_EnikYZpC';
+// PENTING: URL & anon/publishable key TIDAK di-hardcode di source code.
+// Keduanya diambil dari environment variable (file .env, tidak di-commit ke git).
+//
+// Jika project ini pakai Vite   -> buat file .env berisi:
+//   VITE_SUPABASE_URL=https://qbbvqepdszuoakoovuzm.supabase.co
+//   VITE_SUPABASE_ANON_KEY=sb_publishable_xxxxxxxxxxxxxxxxxxxxxxxx
+//
+// Jika project ini pakai Create React App -> gunakan prefix REACT_APP_ dan
+// ganti baris di bawah menjadi process.env.REACT_APP_SUPABASE_URL, dst.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error(
+    'Supabase URL/Key tidak ditemukan. Pastikan file .env sudah diisi (lihat komentar di atas).'
+  );
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // --- DEFAULT / FALLBACK SHAPE (dipakai selama data dari Supabase belum dimuat) ---
@@ -161,8 +177,40 @@ const AppProvider = ({ children }) => {
   const [db, setDb] = useState(emptyDB);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [isAdminAuth, setIsAdminAuth] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [currentRoute, setCurrentRoute] = useState('/'); // '/', '/products', '/admin', etc.
+
+  // --- AUTH: cek session yang sedang aktif & dengarkan perubahan login/logout ---
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+      }
+    );
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const signInAdmin = async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (!error) setSession(data.session);
+    return { error };
+  };
+
+  const signOutAdmin = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setCurrentRoute('/');
+  };
 
   // Mengambil semua data dari Supabase
   const fetchAll = async () => {
@@ -296,8 +344,11 @@ const AppProvider = ({ children }) => {
         addRecord,
         updateRecord,
         deleteRecord,
-        isAdminAuth,
-        setIsAdminAuth,
+        isAdminAuth: !!session,
+        authLoading,
+        adminEmail: session?.user?.email || null,
+        signInAdmin,
+        signOutAdmin,
         currentRoute,
         setCurrentRoute,
       }}
@@ -816,6 +867,153 @@ const ProductsPage = () => {
   );
 };
 
+const serviceIconMap = {
+  Briefcase,
+  ShieldCheck,
+  Search,
+  TrendingUp,
+  Truck,
+  Users,
+  Package,
+  FileText,
+  Settings,
+};
+
+const ServicesPage = () => {
+  const { db } = useContext(AppContext);
+
+  return (
+    <div className="min-h-screen bg-white py-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Our Services
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Solusi pengadaan menyeluruh yang dirancang untuk kebutuhan bisnis,
+            pemerintahan, dan korporasi Anda.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {db.services.map((service) => {
+            const Icon = serviceIconMap[service.icon] || Briefcase;
+            return (
+              <div
+                key={service.id}
+                className="bg-gray-50 rounded-2xl p-8 border border-gray-100 hover:shadow-md transition-shadow"
+              >
+                <div className="w-14 h-14 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-6">
+                  <Icon className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  {service.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {service.description}
+                </p>
+              </div>
+            );
+          })}
+          {db.services.length === 0 && (
+            <div className="col-span-full py-20 text-center text-gray-500">
+              Belum ada layanan yang ditambahkan.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ArticlesPage = () => {
+  const { db, setCurrentRoute } = useContext(AppContext);
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Procurement Blog
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Artikel dan tips seputar dunia procurement, dari pemilihan vendor
+            hingga tren teknologi kantor.
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {db.articles.map((article) => (
+            <div
+              key={article.id}
+              className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="text-xs text-gray-400 mb-2">{article.date}</div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {article.title}
+              </h2>
+              <p className="text-gray-600 mb-4">{article.excerpt}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentRoute(`/articles/${article.slug}`)}
+              >
+                Read More <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {db.articles.length === 0 && (
+            <div className="py-20 text-center text-gray-500">
+              Belum ada artikel yang dipublikasikan.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ArticleDetailPage = ({ slug }) => {
+  const { db, setCurrentRoute } = useContext(AppContext);
+  const article = db.articles.find((a) => a.slug === slug);
+
+  if (!article) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center py-32 text-center px-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Artikel tidak ditemukan
+        </h1>
+        <p className="text-gray-500 mb-6">
+          Artikel dengan slug "{slug}" tidak ada di database.
+        </p>
+        <Button onClick={() => setCurrentRoute('/articles')}>
+          Kembali ke Blog
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white py-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <button
+          onClick={() => setCurrentRoute('/articles')}
+          className="text-sm text-blue-600 hover:underline mb-8 inline-flex items-center gap-1"
+        >
+          ← Kembali ke semua artikel
+        </button>
+        <div className="text-xs text-gray-400 mb-3">{article.date}</div>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+          {article.title}
+        </h1>
+        <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
+          {article.content}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- ADMIN CMS COMPONENTS ---
 const Badge = ({ children, className = '' }) => (
   <span
@@ -826,7 +1024,7 @@ const Badge = ({ children, className = '' }) => (
 );
 
 const AdminLayout = ({ children }) => {
-  const { setCurrentRoute, setIsAdminAuth } = useContext(AppContext);
+  const { signOutAdmin, adminEmail } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const menu = [
@@ -862,10 +1060,7 @@ const AdminLayout = ({ children }) => {
         </div>
         <div className="p-4 border-t border-slate-800">
           <button
-            onClick={() => {
-              setIsAdminAuth(false);
-              setCurrentRoute('/');
-            }}
+            onClick={signOutAdmin}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-red-400 hover:bg-slate-800 transition-colors"
           >
             <LogOut className="h-5 w-5" /> Exit to Website
@@ -881,10 +1076,10 @@ const AdminLayout = ({ children }) => {
           </h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500">
-              Logged in as Administrator
+              Logged in as <strong>{adminEmail || 'Administrator'}</strong>
             </span>
             <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
-              A
+              {(adminEmail || 'A').charAt(0).toUpperCase()}
             </div>
           </div>
         </header>
@@ -1285,7 +1480,26 @@ const AdminArticles = () => {
 };
 
 const AdminLogin = () => {
-  const { setIsAdminAuth } = useContext(AppContext);
+  const { signInAdmin } = useContext(AppContext);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    const { error } = await signInAdmin(email, password);
+    setIsSubmitting(false);
+    if (error) {
+      setError(
+        error.message === 'Invalid login credentials'
+          ? 'Email atau password salah.'
+          : error.message
+      );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -1302,27 +1516,38 @@ const AdminLogin = () => {
           Access the SuplaiKonek management console.
         </p>
 
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setIsAdminAuth(true);
-          }}
-        >
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <Input
             label="Email (Admin)"
             type="email"
-            defaultValue="admin@suplaikonek.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@suplaikonek.com"
+            required
           />
-          <Input label="Password" type="password" defaultValue="password123" />
-          <Button type="submit" className="w-full mt-4">
-            Login to Dashboard
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
+          <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Login to Dashboard'}
           </Button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-400">
-            For this demo, just click Login to proceed without credentials.
+            Akun admin dikelola lewat Supabase Authentication. Hubungi
+            developer jika butuh akun baru.
           </p>
         </div>
       </div>
@@ -1331,10 +1556,16 @@ const AdminLogin = () => {
 };
 
 const MainApp = () => {
-  const { currentRoute, isAdminAuth, isLoading, loadError, refetch } =
-    useContext(AppContext);
+  const {
+    currentRoute,
+    isAdminAuth,
+    isLoading,
+    loadError,
+    refetch,
+    authLoading,
+  } = useContext(AppContext);
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -1372,24 +1603,10 @@ const MainApp = () => {
       <main className="flex-grow">
         {currentRoute === '/' && <HomePage />}
         {currentRoute === '/products' && <ProductsPage />}
-
-        {/* Placeholder routes for demo brevity */}
-        {currentRoute === '/services' && (
-          <div className="py-32 text-center">
-            <h1 className="text-4xl font-bold mb-4">Our Services</h1>
-            <p className="text-gray-500">
-              Service descriptions would go here. (e.g., Corporate Procurement,
-              Govt Projects)
-            </p>
-          </div>
-        )}
-        {currentRoute === '/articles' && (
-          <div className="py-32 text-center">
-            <h1 className="text-4xl font-bold mb-4">Procurement Blog</h1>
-            <p className="text-gray-500">
-              SEO optimized articles for targeted keywords will be listed here.
-            </p>
-          </div>
+        {currentRoute === '/services' && <ServicesPage />}
+        {currentRoute === '/articles' && <ArticlesPage />}
+        {currentRoute.startsWith('/articles/') && (
+          <ArticleDetailPage slug={currentRoute.replace('/articles/', '')} />
         )}
       </main>
 
