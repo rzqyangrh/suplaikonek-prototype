@@ -30,8 +30,24 @@ import {
   Users,
   MessageCircle,
 } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
-// --- MOCK DATABASE (Simulating Supabase) ---
+// --- SUPABASE CONFIG ---
+const supabaseUrl = 'https://qbbvqepdszuoakoovuzm.supabase.co';
+const supabaseKey = 'sb_publishable_weoguRGCzdcQiL89ge2f2A_EnikYZpC';
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// --- DEFAULT / FALLBACK SHAPE (dipakai selama data dari Supabase belum dimuat) ---
+const emptyDB = {
+  settings: {},
+  products: [],
+  services: [],
+  articles: [],
+  categories: [],
+};
+
+// Data ini HANYA dipakai sebagai referensi struktur & untuk seeding awal ke Supabase,
+// bukan lagi menjadi sumber data aplikasi.
 const initialDB = {
   settings: {
     companyName: 'SuplaiKonek',
@@ -142,35 +158,127 @@ const initialDB = {
 const AppContext = createContext();
 
 const AppProvider = ({ children }) => {
-  const [db, setDb] = useState(initialDB);
+  const [db, setDb] = useState(emptyDB);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [currentRoute, setCurrentRoute] = useState('/'); // '/', '/products', '/admin', etc.
 
-  // Simulating CRUD operations
-  const updateSettings = (newSettings) => {
+  // Mengambil semua data dari Supabase
+  const fetchAll = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [
+        settingsRes,
+        productsRes,
+        servicesRes,
+        articlesRes,
+        categoriesRes,
+      ] = await Promise.all([
+        supabase.from('settings').select('*').limit(1).maybeSingle(),
+        supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase.from('services').select('*'),
+        supabase
+          .from('articles')
+          .select('*')
+          .order('date', { ascending: false }),
+        supabase.from('categories').select('*'),
+      ]);
+
+      const firstError =
+        settingsRes.error ||
+        productsRes.error ||
+        servicesRes.error ||
+        articlesRes.error ||
+        categoriesRes.error;
+
+      if (firstError) throw firstError;
+
+      setDb({
+        settings: settingsRes.data || {},
+        products: productsRes.data || [],
+        services: servicesRes.data || [],
+        articles: articlesRes.data || [],
+        categories: (categoriesRes.data || []).map((c) => c.name),
+      });
+    } catch (err) {
+      console.error('Gagal memuat data dari Supabase:', err);
+      setLoadError(err.message || 'Gagal memuat data dari Supabase.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  // --- CRUD via Supabase ---
+  const updateSettings = async (newSettings) => {
+    if (!db.settings?.id) {
+      console.error('Tidak ada row settings untuk diupdate.');
+      return;
+    }
+    const { data, error } = await supabase
+      .from('settings')
+      .update(newSettings)
+      .eq('id', db.settings.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Gagal update settings:', error);
+      return;
+    }
+    setDb((prev) => ({ ...prev, settings: data }));
+  };
+
+  const addRecord = async (table, record) => {
+    const { data, error } = await supabase
+      .from(table)
+      .insert(record)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Gagal menambah data ke ${table}:`, error);
+      return;
+    }
     setDb((prev) => ({
       ...prev,
-      settings: { ...prev.settings, ...newSettings },
+      [table]: [data, ...prev[table]],
     }));
   };
 
-  const addRecord = (table, record) => {
+  const updateRecord = async (table, id, updatedRecord) => {
+    const { data, error } = await supabase
+      .from(table)
+      .update(updatedRecord)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Gagal update data di ${table}:`, error);
+      return;
+    }
     setDb((prev) => ({
       ...prev,
-      [table]: [...prev[table], { ...record, id: Date.now().toString() }],
+      [table]: prev[table].map((item) => (item.id === id ? data : item)),
     }));
   };
 
-  const updateRecord = (table, id, updatedRecord) => {
-    setDb((prev) => ({
-      ...prev,
-      [table]: prev[table].map((item) =>
-        item.id === id ? { ...item, ...updatedRecord } : item
-      ),
-    }));
-  };
+  const deleteRecord = async (table, id) => {
+    const { error } = await supabase.from(table).delete().eq('id', id);
 
-  const deleteRecord = (table, id) => {
+    if (error) {
+      console.error(`Gagal menghapus data di ${table}:`, error);
+      return;
+    }
     setDb((prev) => ({
       ...prev,
       [table]: prev[table].filter((item) => item.id !== id),
@@ -181,6 +289,9 @@ const AppProvider = ({ children }) => {
     <AppContext.Provider
       value={{
         db,
+        isLoading,
+        loadError,
+        refetch: fetchAll,
         updateSettings,
         addRecord,
         updateRecord,
@@ -871,6 +982,10 @@ const AdminSettings = () => {
   const { db, updateSettings } = useContext(AppContext);
   const [formData, setFormData] = useState(db.settings);
 
+  useEffect(() => {
+    setFormData(db.settings);
+  }, [db.settings]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -1216,7 +1331,33 @@ const AdminLogin = () => {
 };
 
 const MainApp = () => {
-  const { currentRoute, isAdminAuth } = useContext(AppContext);
+  const { currentRoute, isAdminAuth, isLoading, loadError, refetch } =
+    useContext(AppContext);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 text-sm">Memuat data dari Supabase...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center max-w-md">
+          <p className="text-red-600 font-semibold mb-2">
+            Gagal memuat data dari Supabase
+          </p>
+          <p className="text-sm text-gray-500 mb-6">{loadError}</p>
+          <Button onClick={refetch}>Coba Lagi</Button>
+        </div>
+      </div>
+    );
+  }
 
   // Simple State-based Router
   if (currentRoute === '/admin') {
