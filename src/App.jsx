@@ -33,15 +33,6 @@ import {
 import { createClient } from '@supabase/supabase-js';
 
 // --- SUPABASE CONFIG ---
-// PENTING: URL & anon/publishable key TIDAK di-hardcode di source code.
-// Keduanya diambil dari environment variable (file .env, tidak di-commit ke git).
-//
-// Jika project ini pakai Vite   -> buat file .env berisi:
-//   VITE_SUPABASE_URL=https://qbbvqepdszuoakoovuzm.supabase.co
-//   VITE_SUPABASE_ANON_KEY=sb_publishable_xxxxxxxxxxxxxxxxxxxxxxxx
-//
-// Jika project ini pakai Create React App -> gunakan prefix REACT_APP_ dan
-// ganti baris di bawah menjadi process.env.REACT_APP_SUPABASE_URL, dst.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -53,122 +44,13 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// --- DEFAULT / FALLBACK SHAPE (dipakai selama data dari Supabase belum dimuat) ---
+// --- DEFAULT / FALLBACK SHAPE ---
 const emptyDB = {
   settings: {},
   products: [],
   services: [],
   articles: [],
   categories: [],
-};
-
-// Data ini HANYA dipakai sebagai referensi struktur & untuk seeding awal ke Supabase,
-// bukan lagi menjadi sumber data aplikasi.
-const initialDB = {
-  settings: {
-    companyName: 'SuplaiKonek',
-    tagline: 'One Stop Solution for Procurement',
-    whatsapp: '6281234567890',
-    email: 'halo@suplaikonek.com',
-    address: 'Jl. Jend. Sudirman No. Kav 1, Jakarta Selatan',
-    heroTitle: 'Simplify Your Corporate Procurement Process',
-    heroSubtitle:
-      'We provide comprehensive procurement solutions for ATK, IT Equipment, Furniture, and Industrial Needs with fast delivery and competitive pricing.',
-    aboutText:
-      'SuplaiKonek is a trusted procurement partner for businesses, government institutions, and commercial offices across Indonesia. We focus on transparency, speed, and quality.',
-    primaryColor: 'blue-600',
-  },
-  products: [
-    {
-      id: '1',
-      name: 'MacBook Pro 16" M3 Max',
-      category: 'Office IT Equipment',
-      brand: 'Apple',
-      image:
-        'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=400&q=80',
-      description:
-        'High-performance laptop for demanding professional workflows.',
-    },
-    {
-      id: '2',
-      name: 'Ergonomic Mesh Chair V2',
-      category: 'Furniture',
-      brand: 'ErgoTech',
-      image:
-        'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=400&q=80',
-      description: 'Premium ergonomic office chair for 8+ hours comfort.',
-    },
-    {
-      id: '3',
-      name: 'Premium Copy Paper A4 80gsm',
-      category: 'ATK',
-      brand: 'PaperOne',
-      image:
-        'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=400&q=80',
-      description: 'High-quality multi-purpose copy paper.',
-    },
-    {
-      id: '4',
-      name: 'Industrial Safety Helmet',
-      category: 'Safety Equipment',
-      brand: 'SafePro',
-      image:
-        'https://images.unsplash.com/photo-1585832770485-e68a5dbfa5dc?auto=format&fit=crop&w=400&q=80',
-      description: 'Standard compliant safety helmet for construction sites.',
-    },
-  ],
-  services: [
-    {
-      id: '1',
-      title: 'Corporate Procurement',
-      description:
-        'End-to-end procurement solutions for daily corporate needs, from ATK to pantry supplies.',
-      icon: 'Briefcase',
-    },
-    {
-      id: '2',
-      title: 'Government Projects',
-      description:
-        'Compliant and transparent procurement for government institutions and BUMN.',
-      icon: 'ShieldCheck',
-    },
-    {
-      id: '3',
-      title: 'Custom Sourcing',
-      description:
-        'Looking for specific items? Our team will source local and international vendors for you.',
-      icon: 'Search',
-    },
-  ],
-  articles: [
-    {
-      id: '1',
-      title: 'Cara Memilih Vendor ATK Terpercaya untuk Perusahaan',
-      slug: 'cara-memilih-vendor-atk',
-      date: '2026-07-10',
-      excerpt:
-        'Memilih vendor ATK yang tepat dapat menghemat anggaran operasional hingga 20%. Berikut tipsnya.',
-      content: 'Full content here...',
-    },
-    {
-      id: '2',
-      title: 'Tren Pengadaan Barang IT Kantor di Tahun 2026',
-      slug: 'tren-pengadaan-it-2026',
-      date: '2026-07-12',
-      excerpt:
-        'Mulai dari AI-ready laptops hingga infrastruktur cloud, ketahui apa yang dibutuhkan kantor modern.',
-      content: 'Full content here...',
-    },
-  ],
-  categories: [
-    'ATK',
-    'Office IT Equipment',
-    'Furniture',
-    'Pantry',
-    'Safety Equipment',
-    'Industrial Supplies',
-    'Custom',
-  ],
 };
 
 const AppContext = createContext();
@@ -179,9 +61,9 @@ const AppProvider = ({ children }) => {
   const [loadError, setLoadError] = useState(null);
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [currentRoute, setCurrentRoute] = useState('/'); // '/', '/products', '/admin', etc.
+  const [currentRoute, setCurrentRoute] = useState('/'); 
 
-  // --- AUTH: cek session yang sedang aktif & dengarkan perubahan login/logout ---
+  // --- AUTH ---
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -434,7 +316,7 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20">
           <div
@@ -442,8 +324,13 @@ const Navbar = () => {
             onClick={() => setCurrentRoute('/')}
           >
             <div className="flex-shrink-0 flex items-center gap-2">
-              <Package className="h-8 w-8 text-blue-600" />
-              <span className="font-bold text-2xl text-gray-900 tracking-tight">
+              {/* Menampilkan Custom Logo jika ada, jika tidak pakai icon Package */}
+              {db.settings?.logoUrl ? (
+                <img src={db.settings.logoUrl} alt="Logo" className="h-10 w-auto object-contain" />
+              ) : (
+                <Package className="h-8 w-8 text-blue-600" />
+              )}
+              <span className="font-bold text-2xl text-gray-900 tracking-tight ml-2">
                 {db.settings.companyName}
               </span>
             </div>
@@ -522,8 +409,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <Package className="h-8 w-8 text-blue-400" />
-              <span className="font-bold text-2xl tracking-tight">
+              {db.settings?.logoUrl ? (
+                <img src={db.settings.logoUrl} alt="Logo" className="h-8 w-auto brightness-0 invert opacity-80" />
+              ) : (
+                <Package className="h-8 w-8 text-blue-400" />
+              )}
+              <span className="font-bold text-2xl tracking-tight ml-2">
                 {db.settings.companyName}
               </span>
             </div>
@@ -588,7 +479,7 @@ const Footer = () => {
             &copy; {new Date().getFullYear()} {db.settings.companyName}. All
             rights reserved.
           </p>
-          <p>Demo Prototype built with React</p>
+          <p>Developed for SuplaiKonek</p>
         </div>
       </div>
     </footer>
@@ -616,18 +507,31 @@ const WhatsAppFloat = () => {
 const HomePage = () => {
   const { db, setCurrentRoute } = useContext(AppContext);
 
+  // Jika ada custom background (Hero Image), kita tambahkan overlay agar text tetap terbaca.
+  const heroStyle = db.settings.heroImage 
+    ? { backgroundImage: `url(${db.settings.heroImage})` }
+    : {};
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-50 via-white to-gray-50 py-20 lg:py-32">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge className="mb-6 inline-block bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full text-sm font-medium border border-blue-200">
+      <section 
+        className="relative bg-gradient-to-br from-blue-50 via-white to-gray-50 py-20 lg:py-32 bg-cover bg-center bg-no-repeat"
+        style={heroStyle}
+      >
+        {/* Overlay untuk memperjelas teks jika menggunakan gambar background */}
+        {db.settings.heroImage && (
+          <div className="absolute inset-0 bg-white/85 backdrop-blur-[2px]"></div>
+        )}
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <Badge className="mb-6 inline-block bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full text-sm font-medium border border-blue-200 shadow-sm">
             {db.settings.tagline}
           </Badge>
           <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-6 max-w-4xl mx-auto leading-tight">
             {db.settings.heroTitle}
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-700 mb-10 max-w-2xl mx-auto leading-relaxed font-medium">
             {db.settings.heroSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -637,6 +541,7 @@ const HomePage = () => {
             <Button
               size="lg"
               variant="outline"
+              className="bg-white/50 backdrop-blur-sm"
               onClick={() => setCurrentRoute('/services')}
             >
               Our Services
@@ -740,7 +645,7 @@ const HomePage = () => {
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
                 Why Choose {db.settings.companyName}?
               </h2>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8">
+              <p className="text-gray-600 text-lg leading-relaxed mb-8 whitespace-pre-line">
                 {db.settings.aboutText}
               </p>
               <ul className="space-y-4">
@@ -1150,22 +1055,18 @@ const AdminDashboard = () => {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h3 className="text-lg font-semibold mb-4">Quick Instructions</h3>
         <p className="text-gray-600 mb-4">
-          Welcome to the SuplaiKonek CMS. Since this is a self-contained
-          prototype, data is stored in memory to demonstrate frontend-backend
-          reactivity.
+          Welcome to the SuplaiKonek CMS. Data is fully synchronized with your Supabase backend.
         </p>
         <ul className="list-disc pl-5 text-sm text-gray-600 space-y-2">
           <li>
             Go to <strong>Global Settings</strong> to change the Company Name,
-            WhatsApp number, and Hero Text. The frontend will update instantly.
+            Logo, WhatsApp number, and Hero Text.
           </li>
           <li>
-            Manage <strong>Products</strong> to simulate adding items to the
-            catalog.
+            Manage <strong>Products</strong> to add items to the catalog.
           </li>
           <li>
-            All changes here immediately reflect on the public website when you
-            click "Exit to Website".
+            Manage <strong>Articles & SEO</strong> to write blog posts for SEO.
           </li>
         </ul>
       </div>
@@ -1175,10 +1076,21 @@ const AdminDashboard = () => {
 
 const AdminSettings = () => {
   const { db, updateSettings } = useContext(AppContext);
-  const [formData, setFormData] = useState(db.settings);
+  const [formData, setFormData] = useState({
+    companyName: '',
+    whatsapp: '',
+    email: '',
+    tagline: '',
+    heroTitle: '',
+    heroSubtitle: '',
+    aboutText: '',
+    logoUrl: '',
+    heroImage: '',
+    ...db.settings
+  });
 
   useEffect(() => {
-    setFormData(db.settings);
+    setFormData((prev) => ({ ...prev, ...db.settings }));
   }, [db.settings]);
 
   const handleChange = (e) => {
@@ -1188,7 +1100,6 @@ const AdminSettings = () => {
 
   const handleSave = () => {
     updateSettings(formData);
-    // Simulating save success
     const btn = document.getElementById('save-btn');
     const originalText = btn.innerText;
     btn.innerText = 'Saved!';
@@ -1214,26 +1125,34 @@ const AdminSettings = () => {
           <Input
             label="Company Name"
             name="companyName"
-            value={formData.companyName}
+            value={formData.companyName || ''}
             onChange={handleChange}
           />
           <Input
-            label="WhatsApp Number (include country code, e.g. 62...)"
+            label="Custom Logo URL (Leave blank to use default Icon)"
+            name="logoUrl"
+            placeholder="https://example.com/logo.png"
+            value={formData.logoUrl || ''}
+            onChange={handleChange}
+          />
+          <Input
+            label="WhatsApp Number (e.g. 6281...)"
             name="whatsapp"
-            value={formData.whatsapp}
+            value={formData.whatsapp || ''}
             onChange={handleChange}
           />
           <Input
             label="Email Address"
             name="email"
-            value={formData.email}
+            value={formData.email || ''}
             onChange={handleChange}
           />
           <Input
             label="Tagline"
             name="tagline"
-            value={formData.tagline}
+            value={formData.tagline || ''}
             onChange={handleChange}
+            className="md:col-span-2"
           />
         </div>
         <div className="space-y-4">
@@ -1241,21 +1160,28 @@ const AdminSettings = () => {
             Homepage Content
           </h3>
           <Input
+            label="Hero Background Image URL (Slide)"
+            name="heroImage"
+            placeholder="https://example.com/banner.jpg"
+            value={formData.heroImage || ''}
+            onChange={handleChange}
+          />
+          <Input
             label="Hero Title"
             name="heroTitle"
-            value={formData.heroTitle}
+            value={formData.heroTitle || ''}
             onChange={handleChange}
           />
           <Textarea
             label="Hero Subtitle"
             name="heroSubtitle"
-            value={formData.heroSubtitle}
+            value={formData.heroSubtitle || ''}
             onChange={handleChange}
           />
           <Textarea
             label="About Us Content"
             name="aboutText"
-            value={formData.aboutText}
+            value={formData.aboutText || ''}
             onChange={handleChange}
           />
         </div>
@@ -1276,7 +1202,7 @@ const AdminProducts = () => {
 
   const initialForm = {
     name: '',
-    category: db.categories[0],
+    category: db.categories[0] || 'Uncategorized',
     brand: '',
     image: '',
     description: '',
@@ -1295,9 +1221,8 @@ const AdminProducts = () => {
   };
 
   const handleSave = () => {
-    // Basic validation
     if (!formData.name || !formData.image)
-      return alert('Name and Image URL are required for demo purposes.');
+      return alert('Name and Image URL are required.');
 
     if (currentEdit) {
       updateRecord('products', currentEdit, formData);
@@ -1347,7 +1272,7 @@ const AdminProducts = () => {
             }
           />
           <Input
-            label="Image URL (Unsplash or direct link)"
+            label="Image URL"
             value={formData.image}
             onChange={(e) =>
               setFormData({ ...formData, image: e.target.value })
@@ -1443,37 +1368,158 @@ const AdminProducts = () => {
 };
 
 const AdminArticles = () => {
-  const { db } = useContext(AppContext);
-  // Simplified view for articles to keep the demo file manageable
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 text-center">
-      <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-      <h2 className="text-lg font-semibold text-gray-900 mb-2">
-        Articles & SEO Management
-      </h2>
-      <p className="text-gray-500 mb-6 max-w-md mx-auto">
-        This module allows you to create SEO-optimized articles. In a full
-        implementation, this includes a Rich Text Editor (like TipTap or Quill)
-        and Metadata inputs.
-      </p>
+  const { db, addRecord, updateRecord, deleteRecord } = useContext(AppContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentEdit, setCurrentEdit] = useState(null);
 
-      <div className="text-left max-w-2xl mx-auto border rounded-lg overflow-hidden">
-        <div className="bg-gray-50 p-3 border-b text-sm font-medium text-gray-700">
-          Existing Articles (Read-only demo)
+  const initialForm = {
+    title: '',
+    slug: '',
+    date: new Date().toISOString().split('T')[0],
+    excerpt: '',
+    content: '',
+  };
+  const [formData, setFormData] = useState(initialForm);
+
+  const handleOpenEdit = (article = null) => {
+    if (article) {
+      setCurrentEdit(article.id);
+      setFormData(article);
+    } else {
+      setCurrentEdit(null);
+      setFormData(initialForm);
+    }
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.title || !formData.slug) {
+      return alert('Title and URL Slug are required.');
+    }
+
+    // Pastikan format slug aman (huruf kecil, ganti spasi dengan strip)
+    const formattedData = {
+      ...formData,
+      slug: formData.slug.toLowerCase().replace(/\s+/g, '-')
+    };
+
+    if (currentEdit) {
+      updateRecord('articles', currentEdit, formattedData);
+    } else {
+      addRecord('articles', formattedData);
+    }
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <h2 className="text-lg font-semibold mb-6">
+          {currentEdit ? 'Edit Article' : 'Write New Article'}
+        </h2>
+        <div className="space-y-4 max-w-3xl">
+          <Input
+            label="Article Title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="URL Slug (e.g. tips-memilih-vendor)"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+            />
+            <Input
+              label="Publish Date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+            />
+          </div>
+          <Textarea
+            label="Excerpt (Short Summary for SEO)"
+            value={formData.excerpt}
+            onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+          />
+          <Textarea
+            label="Full Content (Supports plain text with line breaks)"
+            value={formData.content}
+            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            className="min-h-[250px]"
+          />
+          <div className="flex gap-4 pt-4">
+            <Button onClick={handleSave}>Save Article</Button>
+            <Button variant="ghost" onClick={() => setIsEditing(false)}>
+              Cancel
+            </Button>
+          </div>
         </div>
-        <div className="divide-y">
-          {db.articles.map((a) => (
-            <div key={a.id} className="p-4 flex justify-between items-center">
-              <div>
-                <div className="font-medium text-gray-900">{a.title}</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Slug: /{a.slug} | Date: {a.date}
-                </div>
-              </div>
-              <Badge className="bg-green-100 text-green-800">Published</Badge>
-            </div>
-          ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Articles & SEO Management
+          </h2>
+          <p className="text-sm text-gray-500">
+            Manage your blog posts and procurement updates.
+          </p>
         </div>
+        <Button onClick={() => handleOpenEdit()}>
+          <Plus className="w-4 h-4 mr-2" /> Write Article
+        </Button>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold">
+              <th className="p-4">Article Title</th>
+              <th className="p-4">Date</th>
+              <th className="p-4">Status</th>
+              <th className="p-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 text-sm">
+            {db.articles.map((a) => (
+              <tr key={a.id} className="hover:bg-gray-50">
+                <td className="p-4">
+                  <div className="font-medium text-gray-900">{a.title}</div>
+                  <div className="text-xs text-gray-500 mt-1">/{a.slug}</div>
+                </td>
+                <td className="p-4 text-gray-600">{a.date}</td>
+                <td className="p-4">
+                  <Badge className="bg-green-100 text-green-800">Published</Badge>
+                </td>
+                <td className="p-4 text-right">
+                  <button
+                    onClick={() => handleOpenEdit(a)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg mr-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteRecord('articles', a.id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {db.articles.length === 0 && (
+              <tr>
+                <td colSpan="4" className="p-8 text-center text-gray-500">
+                  No articles found. Write your first post.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -1623,3 +1669,8 @@ export default function App() {
     </AppProvider>
   );
 }
+//Langkah Selanjutnya di Supabase:
+//Karena kita menambahkan *field* baru di CMS untuk menyimpan Logo dan Background Hero, Anda harus **menambahkan 2 kolom baru** pada tabel `settings` di Supabase Anda:
+//1. Kolom baru: `logoUrl` (Tipe: `text`)
+//2. Kolom baru: `heroImage` (Tipe: `text`)
+//Setelah kolom itu dibuat di Supabase, semua fitur input di menu **Global Settings** akan langsung menyimpan URL gambar tersebut dan merender tampilan di halaman publik. Silakan diuji coba di StackBlitz Anda!
