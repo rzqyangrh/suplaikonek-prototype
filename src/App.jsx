@@ -1669,8 +1669,3 @@ export default function App() {
     </AppProvider>
   );
 }
-//Langkah Selanjutnya di Supabase:
-//Karena kita menambahkan *field* baru di CMS untuk menyimpan Logo dan Background Hero, Anda harus **menambahkan 2 kolom baru** pada tabel `settings` di Supabase Anda:
-//1. Kolom baru: `logoUrl` (Tipe: `text`)
-//2. Kolom baru: `heroImage` (Tipe: `text`)
-//Setelah kolom itu dibuat di Supabase, semua fitur input di menu **Global Settings** akan langsung menyimpan URL gambar tersebut dan merender tampilan di halaman publik. Silakan diuji coba di StackBlitz Anda!
