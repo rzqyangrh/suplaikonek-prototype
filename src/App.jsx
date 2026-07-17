@@ -410,7 +410,7 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               {db.settings?.logoUrl ? (
-                <img src={db.settings.logoUrl} alt="Logo" className="h-8 w-auto brightness-0 invert opacity-80" />
+                <img src={db.settings.logoUrl} alt="Logo" className="h-8 w-auto brightness-1 invert opacity-50" />
               ) : (
                 <Package className="h-8 w-8 text-blue-400" />
               )}
